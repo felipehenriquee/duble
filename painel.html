@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel da Chamada</title>
+<style>
+  :root {
+    --fundo: #111418; --cartao: #1b2027; --borda: #2a313b; --texto: #e8ebef;
+    --suave: #9aa4b1; --meet: #f2b84b; --eu: #5aa9ff; --ok: #3ecf8e; --erro: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fundo); color: var(--texto);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 16px; border-bottom: 1px solid var(--borda); background: #0d1014;
+  }
+  header h1 { font-size: 17px; margin: 0; flex: 1; font-weight: 600; }
+  #status { font-size: 13px; color: var(--suave); }
+  #status.on::before { content: "● "; color: var(--ok); }
+  #status.off::before { content: "● "; color: var(--erro); }
+  button {
+    font: inherit; font-size: 14px; cursor: pointer; border-radius: 8px;
+    border: 1px solid var(--borda); background: #232a33; color: var(--texto); padding: 8px 14px;
+  }
+  button:hover { border-color: var(--suave); }
+  button:disabled { opacity: .55; cursor: progress; }
+  #mic.ligado { background: var(--eu); border-color: var(--eu); color: #06121f; font-weight: 600; }
+  main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .vazio { color: var(--suave); text-align: center; margin: auto; max-width: 420px; }
+  .cartao {
+    background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px;
+    padding: 12px 14px; max-width: 900px; width: 100%;
+  }
+  .meet { border-left: 4px solid var(--meet); }
+  .eu { border-left: 4px solid var(--eu); align-self: flex-end; }
+  .rotulo { font-size: 12px; color: var(--suave); display: flex; gap: 8px; margin-bottom: 4px; }
+  .rotulo b { color: var(--meet); font-weight: 600; }
+  .eu .rotulo b { color: var(--eu); }
+  .en { font-size: 18px; }
+  .eu .en { font-size: 22px; font-weight: 500; }
+  .pt { color: var(--suave); margin-top: 2px; }
+  .acoes { margin-top: 10px; }
+  .sugestoes { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .sug {
+    border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; cursor: pointer;
+    background: #151a20;
+  }
+  .sug:hover { border-color: var(--ok); }
+  .sug.escolhida { border-color: var(--ok); background: #13261e; }
+  .sug .en { font-size: 20px; }
+  .sug .tipo { font-size: 11px; color: var(--ok); text-transform: uppercase; letter-spacing: .05em; }
+  .sug .estado { float: right; text-transform: none; letter-spacing: 0; color: var(--suave); }
+  .sug.falando { cursor: progress; border-color: var(--ok); background: #13261e; }
+  .sug.falando .estado { color: var(--ok); font-weight: 600; }
+  .erro { color: var(--erro); font-size: 14px; margin-top: 8px; }
+  footer {
+    display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--borda); background: #0d1014;
+  }
+  footer input {
+    flex: 1; min-width: 0; font: inherit; padding: 9px 12px; border-radius: 8px;
+    border: 1px solid var(--borda); background: var(--cartao); color: var(--texto);
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Painel da Chamada</h1>
+  <span id="status" class="off">conectando…</span>
+  <button id="mic" title="Quando ligado, o que você fala é traduzido para inglês (e falado no Meet, se a voz estiver ligada)">Traduzir minha fala: desligado</button>
+</header>
+
+<main id="lista">
+  <p class="vazio" id="vazio">Quando a outra pessoa falar na chamada, o texto aparece aqui em inglês e português.
+    Clique em <b>Sugerir respostas</b> para ver opções do que responder.</p>
+</main>
+
+<footer>
+  <input id="pergunta" placeholder="Digite uma pergunta em inglês, se o áudio falhar…" autocomplete="off">
+  <button id="enviar">Adicionar</button>
+</footer>
+
+<script>
+const lista = document.getElementById("lista");
+const micBtn = document.getElementById("mic");
+const statusEl = document.getElementById("status");
+const TIPOS = ["Curta", "Completa", "Outro ângulo"];
+let sugestorAtivo = true;
+let vozAtiva = false;
+let micLigado = false;
+
+function el(tag, classe, texto) {
+  const e = document.createElement(tag);
+  if (classe) e.className = classe;
+  if (texto !== undefined) e.textContent = texto;
+  return e;
+}
+
+function pertoDoFim() {
+  return lista.scrollHeight - lista.scrollTop - lista.clientHeight < 120;
+}
+
+function desenharSugestoes(cartao, sugestoes) {
+  let caixa = cartao.querySelector(".sugestoes");
+  if (!caixa) { caixa = el("div", "sugestoes"); cartao.appendChild(caixa); }
+  caixa.replaceChildren();
+  sugestoes.forEach((s, i) => {
+    const d = el("div", "sug");
+    const estado = el("span", "estado", vozAtiva ? "clique para falar no Meet" : "");
+    const tipo = el("div", "tipo", TIPOS[i] || `Opção ${i + 1}`);
+    tipo.appendChild(estado);
+    d.append(tipo, el("div", "en", s.en), el("div", "pt", s.pt));
+    d.onclick = async () => {
+      if (d.classList.contains("falando")) return;  // evita falar duas vezes com clique duplo
+      caixa.querySelectorAll(".sug").forEach(x => x.classList.remove("escolhida"));
+      d.classList.add("escolhida");
+      if (!vozAtiva) return;
+      d.classList.add("falando");
+      estado.textContent = "falando…";
+      try {
+        const r = await fetch("/falar", { method: "POST", body: JSON.stringify({ texto: s.en }) });
+        if (!r.ok) throw new Error((await r.json()).erro);
+        // a voz leva alguns segundos para ser gerada e tocada
+        setTimeout(() => { d.classList.remove("falando"); estado.textContent = "falada · clique para repetir"; }, 3000);
+      } catch (e) {
+        d.classList.remove("falando");
+        estado.textContent = `erro: ${e.message}`;
+      }
+    };
+    caixa.appendChild(d);
+  });
+}
+
+function adicionar(item) {
+  document.getElementById("vazio")?.remove();
+  const rolar = pertoDoFim();
+  const c = el("div", `cartao ${item.tipo}`);
+  c.id = `item-${item.id}`;
+  const rot = el("div", "rotulo");
+  rot.append(el("b", "", item.tipo === "meet" ? "Outra pessoa" : "Você — leia em inglês"), el("span", "", item.hora));
+  c.append(rot, el("div", "en", item.en));
+  if (item.pt) c.appendChild(el("div", "pt", item.pt));
+
+  if (item.tipo === "meet") {
+    const acoes = el("div", "acoes");
+    const b = el("button", "", "Sugerir respostas");
+    b.onclick = () => sugerir(item.id, b, c);
+    acoes.appendChild(b);
+    c.appendChild(acoes);
+  }
+  if (item.sugestoes) desenharSugestoes(c, item.sugestoes);
+  lista.appendChild(c);
+  if (rolar) lista.scrollTop = lista.scrollHeight;
+}
+
+async function sugerir(id, botao, cartao) {
+  if (!sugestorAtivo) {
+    mostrarErro(cartao, "Coloque a GEMINI_API_KEY no arquivo .env e reinicie o painel.");
+    return;
+  }
+  botao.disabled = true;
+  botao.textContent = "Pensando…";
+  cartao.querySelector(".erro")?.remove();
+  try {
+    const r = await fetch("/sugerir", { method: "POST", body: JSON.stringify({ id }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || r.statusText);
+    desenharSugestoes(cartao, d.sugestoes);
+    botao.textContent = "Sugerir outras";
+  } catch (e) {
+    mostrarErro(cartao, e.message);
+    botao.textContent = "Tentar de novo";
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+function mostrarErro(cartao, msg) {
+  cartao.querySelector(".erro")?.remove();
+  cartao.appendChild(el("div", "erro", msg));
+}
+
+function atualizarMic(ligado) {
+  micLigado = ligado;
+  micBtn.classList.toggle("ligado", ligado);
+  micBtn.textContent = `Traduzir minha fala: ${ligado ? "ligado" : "desligado"}`;
+}
+
+micBtn.onclick = () => fetch("/microfone", { method: "POST", body: JSON.stringify({ ligado: !micLigado }) });
+
+async function enviarPergunta() {
+  const campo = document.getElementById("pergunta");
+  const texto = campo.value.trim();
+  if (!texto) return;
+  campo.value = "";
+  await fetch("/pergunta", { method: "POST", body: JSON.stringify({ texto }) });
+}
+document.getElementById("enviar").onclick = enviarPergunta;
+document.getElementById("pergunta").addEventListener("keydown", e => { if (e.key === "Enter") enviarPergunta(); });
+
+function conectar() {
+  const fonte = new EventSource("/eventos");
+  fonte.addEventListener("inicio", e => {
+    const d = JSON.parse(e.data);
+    sugestorAtivo = d.sugestor;
+    vozAtiva = d.voz;
+    lista.querySelectorAll(".cartao").forEach(c => c.remove());
+    d.itens.forEach(adicionar);
+    atualizarMic(d.microfone);
+    statusEl.className = "on";
+    statusEl.textContent = ["conectado", d.voz ? "voz no Meet ligada" : "só texto",
+                            d.sugestor ? null : "sem chave do Gemini"].filter(Boolean).join(" · ");
+  });
+  fonte.addEventListener("item", e => adicionar(JSON.parse(e.data)));
+  fonte.addEventListener("microfone", e => atualizarMic(JSON.parse(e.data).ligado));
+  fonte.addEventListener("sugestoes", e => {
+    const d = JSON.parse(e.data);
+    const c = document.getElementById(`item-${d.id}`);
+    if (c) desenharSugestoes(c, d.sugestoes);
+  });
+  fonte.onerror = () => {
+    statusEl.className = "off";
+    statusEl.textContent = "desconectado — o painel.sh está rodando?";
+  };
+}
+conectar();
+</script>
+</body>
+</html>

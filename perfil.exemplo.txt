@@ -1,0 +1,28 @@
+Este arquivo é lido pela IA para sugerir respostas. Copie para perfil.txt e escreva em
+português mesmo. Quanto mais detalhes reais, melhores as sugestões.
+A IA é instruída a NÃO inventar nada que não esteja aqui.
+
+== Sobre mim ==
+Nome:
+Cidade:
+Cargo atual:
+Empresa atual:
+
+== Formação ==
+
+== Experiência ==
+- [empresa] ([ano]-[ano]): [o que você fazia, tecnologias, resultados]
+
+== Tecnologias que domino ==
+
+== Projetos de que me orgulho ==
+- [projeto]: [problema, o que você fez, resultado]
+
+== Pontos fortes ==
+
+== Pontos a melhorar ==
+
+== Sobre a vaga / conversa de hoje ==
+[empresa, cargo, o que você sabe sobre eles]
+
+== Perguntas que quero fazer ==

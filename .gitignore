@@ -1,0 +1,21 @@
+# Segredos e dados pessoais
+.env
+perfil.txt
+
+# Transcrições de chamadas e testes
+conversa.txt
+dublagem.txt
+meet.txt
+eu.txt
+eu_ingles.txt
+transcricao.txt
+traducao.txt
+
+# Texto de divulgação
+post_linkedin.txt
+
+# Ambiente e modelos baixados
+.venv/
+__pycache__/
+modelos/
+vozes/

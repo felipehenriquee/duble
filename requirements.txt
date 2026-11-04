@@ -1,0 +1,6 @@
+faster-whisper
+piper-tts
+sentencepiece
+google-genai
+nvidia-cublas-cu12
+nvidia-cudnn-cu12==9.*
