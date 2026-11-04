@@ -49,6 +49,10 @@ Opções: `./painel.sh --help`. Para só traduzir a voz, sem painel: `./tradutor
 
 Clone apenas a sua própria voz. A conversa fica salva em `conversa.txt` no seu computador, então avise as outras pessoas da chamada quando a transcrição ou a voz sintética exigirem isso.
 
+## Licença
+
+[GPL-3.0](LICENSE).
+
 ## Créditos
 
 [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [Piper](https://github.com/OHF-Voice/piper1-gpl), [VoiceStudio](https://github.com/debpalash/VoiceStudio) e [OPUS-MT](https://github.com/Helsinki-NLP/Opus-MT) (Tiedemann e Thottingal, CC-BY 4.0, empacotado pelo Argos Translate).

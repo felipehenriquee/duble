@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import queue
+import re
 import subprocess
 import threading
 import time
@@ -29,6 +30,15 @@ def carregar_env(caminho=PASTA / ".env"):
         if linha and not linha.startswith("#") and "=" in linha:
             chave, valor = linha.split("=", 1)
             os.environ.setdefault(chave.strip(), valor.strip().strip('"').strip("'"))
+
+
+def nome_do_perfil():
+    """Primeiro nome da linha 'Nome:' do perfil.txt, para a IA saber com quem está falando."""
+    if PERFIL.exists():
+        achado = re.search(r"^Nome:[ \t]*(\S+)", PERFIL.read_text(encoding="utf-8"), re.MULTILINE)
+        if achado:
+            return achado.group(1)
+    return "the user"
 
 
 class Conversa:
@@ -66,7 +76,7 @@ class Conversa:
         """As últimas falas até a pergunta escolhida, para a IA entender a conversa."""
         linhas = []
         for it in self.itens[max(0, ate_id - n + 1):ate_id + 1]:
-            quem = "Interviewer/other person" if it["tipo"] == "meet" else "Felipe"
+            quem = "Interviewer/other person" if it["tipo"] == "meet" else nome_do_perfil()
             linhas.append(f"{quem}: {it['en']}")
         return "\n".join(linhas)
 
@@ -112,8 +122,9 @@ class Sugestor:
     def sugerir(self, contexto, pergunta):
         from google.genai import types
         perfil = PERFIL.read_text(encoding="utf-8") if PERFIL.exists() else "(sem perfil)"
-        prompt = f"""You help Felipe, a Brazilian developer, during a live English conversation
-(often a job interview). He will READ your suggestions out loud, so write natural, simple,
+        nome = nome_do_perfil()
+        prompt = f"""You help {nome}, a Brazilian professional, during a live English conversation
+(often a job interview). They will READ your suggestions out loud, so write natural, simple,
 spoken English: short sentences, no jargon he would stumble on, no bullet points.
 
 Use ONLY facts from his profile below. Never invent companies, numbers, projects or skills.
@@ -127,7 +138,7 @@ Give exactly 3 different options:
 
 For each option also give a Brazilian Portuguese translation so he understands what he is saying.
 
-=== Felipe's profile (written in Portuguese) ===
+=== Profile of {nome} (written in Portuguese) ===
 {perfil}
 
 === Conversation so far ===
@@ -278,7 +289,7 @@ def main():
     p.add_argument("--arquivo", default=str(PASTA / "conversa.txt"),
                    help="onde salvar a conversa (padrão: conversa.txt)")
     p.add_argument("--voz-clonada", default=None,
-                   help="nome de uma voz do VoiceStudio (ex.: felipe); padrão: VOZ_CLONADA do .env, "
+                   help="nome de uma voz do VoiceStudio (ex.: minha_voz); padrão: VOZ_CLONADA do .env, "
                         "ou a voz do Piper se não houver")
     p.add_argument("--passos", type=int, default=None,
                    help="qualidade da voz clonada: menos = mais rápido (padrão: VOZ_PASSOS do .env, ou 16)")

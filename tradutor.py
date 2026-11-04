@@ -317,7 +317,7 @@ def main():
     p.add_argument("--voz", default=str(PASTA / "vozes" / "en_US-lessac-medium.onnx"),
                    help="voz do Piper, usada quando não há --voz-clonada")
     p.add_argument("--voz-clonada", default=None,
-                   help="nome ou id de uma voz do VoiceStudio (ex.: felipe); o app precisa estar aberto")
+                   help="nome ou id de uma voz do VoiceStudio (ex.: minha_voz); o app precisa estar aberto")
     p.add_argument("--passos", type=int, default=16,
                    help="qualidade da voz clonada: mais passos = melhor e mais lento (padrão: 16)")
     p.add_argument("--voicestudio-url", default="http://127.0.0.1:3900")
