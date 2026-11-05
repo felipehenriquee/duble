@@ -72,6 +72,7 @@
   <h1>Painel da Chamada</h1>
   <span id="status" class="off">conectando…</span>
   <button id="mic" title="Quando ligado, o que você fala é traduzido para inglês (e falado no Meet, se a voz estiver ligada)">Traduzir minha fala: desligado</button>
+  <button id="limpar" title="Apaga a conversa do painel e o contexto usado nas sugestões; o conversa.txt continua guardando tudo">Limpar conversa</button>
 </header>
 
 <main id="lista">
@@ -192,6 +193,19 @@ function atualizarMic(ligado) {
 
 micBtn.onclick = () => fetch("/microfone", { method: "POST", body: JSON.stringify({ ligado: !micLigado }) });
 
+const vazioEl = document.getElementById("vazio");
+
+function limparCartoes() {
+  lista.querySelectorAll(".cartao").forEach(c => c.remove());
+  lista.appendChild(vazioEl);
+}
+
+document.getElementById("limpar").onclick = () => {
+  if (confirm("Limpar a conversa do painel? As sugestões na tela serão perdidas.")) {
+    fetch("/limpar", { method: "POST" });
+  }
+};
+
 async function enviarPergunta() {
   const campo = document.getElementById("pergunta");
   const texto = campo.value.trim();
@@ -208,7 +222,7 @@ function conectar() {
     const d = JSON.parse(e.data);
     sugestorAtivo = d.sugestor;
     vozAtiva = d.voz;
-    lista.querySelectorAll(".cartao").forEach(c => c.remove());
+    limparCartoes();
     d.itens.forEach(adicionar);
     atualizarMic(d.microfone);
     statusEl.className = "on";
@@ -217,6 +231,7 @@ function conectar() {
   });
   fonte.addEventListener("item", e => adicionar(JSON.parse(e.data)));
   fonte.addEventListener("microfone", e => atualizarMic(JSON.parse(e.data).ligado));
+  fonte.addEventListener("limpo", limparCartoes);
   fonte.addEventListener("sugestoes", e => {
     const d = JSON.parse(e.data);
     const c = document.getElementById(`item-${d.id}`);

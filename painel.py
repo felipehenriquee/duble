@@ -66,6 +66,12 @@ class Conversa:
         self.enviar("item", item)
         return item
 
+    def limpar(self):
+        """Limpa a conversa do painel e o contexto da IA; o conversa.txt continua guardando tudo."""
+        with self.trava:
+            self.itens.clear()
+        self.enviar("limpo", {})
+
     def enviar(self, evento, dados):
         msg = f"event: {evento}\ndata: {json.dumps(dados, ensure_ascii=False)}\n\n".encode()
         with self.trava:
@@ -250,6 +256,9 @@ def criar_servidor(conversa, sugestor, voz, passagem, porta):
                 if texto:
                     voz.falar(texto, None)
                 self._json(200, {})
+            elif self.path == "/limpar":
+                conversa.limpar()
+                self._json(200, {})
             else:
                 self.send_error(404)
 
@@ -265,6 +274,11 @@ def criar_servidor(conversa, sugestor, voz, passagem, porta):
                 respostas = sugestor.sugerir(conversa.contexto(item["id"]), item["en"])
             except Exception as e:
                 return self._json(502, {"erro": f"Gemini: {e}"})
+            with conversa.trava:
+                ainda_existe = any(x is item for x in conversa.itens)
+            if not ainda_existe:
+                # limparam a conversa enquanto o Gemini respondia: o id pode já ser de outra fala
+                return self._json(409, {"erro": "a conversa foi limpa"})
             item["sugestoes"] = respostas
             conversa.enviar("sugestoes", {"id": item["id"], "sugestoes": respostas,
                                           "tempo": round(time.time() - inicio, 1)})
